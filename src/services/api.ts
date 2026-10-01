@@ -1,5 +1,7 @@
 import {
   Product,
+  ProductCategory,
+  ProductUnit,
   Order,
   InventoryLog,
   ExpiryAlert,
@@ -7,6 +9,53 @@ import {
   RealProductDemand,
   OrderStatus,
 } from '../types';
+import { supabase } from '../supabaseClient';
+
+interface SupabaseProductRow {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  price: number | string;
+  stock: number;
+  min_stock: number;
+  has_expiry: boolean;
+  image: string | null;
+}
+
+function toProduct(row: SupabaseProductRow): Product {
+  const timestamp = new Date().toISOString();
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category as ProductCategory,
+    unit: row.unit as ProductUnit,
+    price: Number(row.price),
+    stock: row.stock,
+    minStockThreshold: row.min_stock,
+    isFoodItem: row.has_expiry,
+    imageUrl: row.image ?? '',
+    sku: '',
+    description: '',
+    clicksCount: 0,
+    salesCount: 0,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
+function toSupabaseProduct(product: Partial<Product>): Partial<SupabaseProductRow> {
+  return {
+    ...(product.name !== undefined ? { name: product.name } : {}),
+    ...(product.category !== undefined ? { category: product.category } : {}),
+    ...(product.unit !== undefined ? { unit: product.unit } : {}),
+    ...(product.price !== undefined ? { price: product.price } : {}),
+    ...(product.stock !== undefined ? { stock: product.stock } : {}),
+    ...(product.minStockThreshold !== undefined ? { min_stock: product.minStockThreshold } : {}),
+    ...(product.isFoodItem !== undefined ? { has_expiry: product.isFoodItem } : {}),
+    ...(product.imageUrl !== undefined ? { image: product.imageUrl } : {}),
+  };
+}
 
 const STORAGE_KEYS = {
   PRODUCTS: 'eljawhara_live_products_v2',
@@ -88,24 +137,9 @@ export const BakeryAdminApi = {
 
   // Products - Real Only
   async getProducts(): Promise<Product[]> {
-    const config = this.getConfig();
-    if (config.useRemoteBackend && config.backendUrl) {
-      try {
-        const response = await fetch(`${config.backendUrl}/products`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          return Array.isArray(data) ? data : data.products || [];
-        }
-      } catch (err) {
-        console.warn('Failed to fetch from remote backend, using local real storage:', err);
-      }
-    }
-    return loadFromStorage<Product[]>(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    const { data, error } = await supabase.from('products').select('*');
+    if (error) throw error;
+    return (data as SupabaseProductRow[]).map(toProduct);
   },
 
   async getProductById(id: string): Promise<Product | null> {
@@ -113,35 +147,14 @@ export const BakeryAdminApi = {
     return products.find((p) => p.id === id) || null;
   },
 
-  async addProduct(newProduct: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'clicksCount' | 'salesCount'>): Promise<Product> {
-    const products = await this.getProducts();
-    const created: Product = {
-      ...newProduct,
-      id: 'prod-' + Date.now().toString().slice(-6),
-      clicksCount: 0,
-      salesCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const config = this.getConfig();
-    if (config.useRemoteBackend && config.backendUrl) {
-      try {
-        await fetch(`${config.backendUrl}/products`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-          },
-          body: JSON.stringify(created),
-        });
-      } catch (err) {
-        console.warn('Failed to sync product with remote backend:', err);
-      }
-    }
-
-    products.unshift(created);
-    saveToStorage(STORAGE_KEYS.PRODUCTS, products);
+  async addProduct(newProduct: Partial<Product>): Promise<Product> {
+    const { data, error } = await supabase
+      .from('products')
+      .insert(toSupabaseProduct(newProduct))
+      .select('*')
+      .single();
+    if (error) throw error;
+    const created = toProduct(data as SupabaseProductRow);
 
     // Log real addition
     await this.logInventoryChange({
@@ -158,37 +171,18 @@ export const BakeryAdminApi = {
   },
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
-    const products = await this.getProducts();
-    const index = products.findIndex((p) => p.id === id);
-    if (index === -1) {
-      throw new Error(`المنتج بالرقم ${id} غير موجود`);
-    }
+    const existing = await this.getProductById(id);
+    if (!existing) throw new Error(`المنتج بالرقم ${id} غير موجود`);
 
-    const previousStock = products[index].stock;
-    const updated: Product = {
-      ...products[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    products[index] = updated;
-    saveToStorage(STORAGE_KEYS.PRODUCTS, products);
-
-    const config = this.getConfig();
-    if (config.useRemoteBackend && config.backendUrl) {
-      try {
-        await fetch(`${config.backendUrl}/products/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-          },
-          body: JSON.stringify(updated),
-        });
-      } catch (err) {
-        console.warn('Failed to sync product update with remote backend:', err);
-      }
-    }
+    const { data, error } = await supabase
+      .from('products')
+      .update(toSupabaseProduct(updates))
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    const updated = toProduct(data as SupabaseProductRow);
+    const previousStock = existing.stock;
 
     // If stock changed, record log
     if (updates.stock !== undefined && updates.stock !== previousStock) {
@@ -221,24 +215,8 @@ export const BakeryAdminApi = {
   },
 
   async deleteProduct(id: string): Promise<boolean> {
-    const products = await this.getProducts();
-    const filtered = products.filter((p) => p.id !== id);
-    saveToStorage(STORAGE_KEYS.PRODUCTS, filtered);
-
-    const config = this.getConfig();
-    if (config.useRemoteBackend && config.backendUrl) {
-      try {
-        await fetch(`${config.backendUrl}/products/${id}`, {
-          method: 'DELETE',
-          headers: {
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-          },
-        });
-      } catch (err) {
-        console.warn('Failed to delete on remote backend:', err);
-      }
-    }
-
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    if (error) throw error;
     return true;
   },
 

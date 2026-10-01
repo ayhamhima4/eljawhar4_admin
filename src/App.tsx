@@ -139,16 +139,17 @@ export default function App() {
         // Update existing
         const updated = await BakeryAdminApi.updateProduct(editingProduct.id, productData);
         setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-        showToast('تم حفظ تعديلات المنتج وتاريخ الصلاحية بنجاح');
+        showToast('تم حفظ تعديلات المنتج بنجاح');
       } else {
         // Add new
-        const created = await BakeryAdminApi.addProduct(productData as any);
+        const created = await BakeryAdminApi.addProduct(productData);
         setProducts((prev) => [created, ...prev]);
         showToast('تم إدراج الصنف الجديد في متجر الحلويات بنجاح');
       }
-      loadData();
-    } catch {
+      await loadData();
+    } catch (error) {
       showToast('فشل حفظ بيانات المنتج', 'error');
+      throw error;
     }
   };
 

@@ -54,8 +54,10 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [productionDate, setProductionDate] = useState('');
   const [batchNumber, setBatchNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
+    setSubmitError('');
     if (product) {
       setName(product.name);
       setCategory(product.category);
@@ -97,6 +99,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
     if (!name.trim()) return;
 
     setIsSubmitting(true);
+    setSubmitError('');
     try {
       await onSave({
         name: name.trim(),
@@ -115,6 +118,10 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
         batchNumber: isFoodItem && batchNumber ? batchNumber : undefined,
       });
       onClose();
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'تعذر حفظ المنتج، يرجى المحاولة مجدداً.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -345,6 +352,11 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </div>
 
           {/* Buttons */}
+          {submitError && (
+            <p role="alert" className="text-sm text-red-700" dir="rtl">
+              تعذر حفظ المنتج: {submitError}
+            </p>
+          )}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#e7e1de]">
             <button
               type="button"
