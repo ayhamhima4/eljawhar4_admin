@@ -1,0 +1,8 @@
+{
+  "name": "لوحة تحكم فنون الحلويات - Baking & Pastry Admin",
+  "description": "لوحة تحكم إدارية متكاملة لمتجر مستلزمات الكعك والحلويات: متابعة المبيعات والطلبات الحية، إدارة المنتجات، ومراقبة المخزون وتواريخ الصلاحية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
