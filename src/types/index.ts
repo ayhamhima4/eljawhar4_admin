@@ -61,6 +61,8 @@ export interface Order {
   paymentMethod: string;
   paymentStatus: 'paid' | 'pending' | 'unknown';
   status: OrderStatus;
+  shippedAt?: string;
+  deliveredAt?: string;
   notes?: string;
   coupon?: string;
   createdAt: string; // ISO string
@@ -111,7 +113,7 @@ export interface DashboardStats {
 export interface RealProductDemand {
   productId: string;
   name: string;
-  category: ProductCategory;
+  category: ProductCategory | 'مستلزمات عامة';
   orderedUnits: number;
   totalRevenue: number;
   ordersCount: number;

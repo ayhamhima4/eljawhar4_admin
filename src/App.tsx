@@ -389,7 +389,6 @@ export default function App() {
               stats={stats}
               products={products}
               orders={orders}
-              realDemand={realDemand}
             />
           )}
 

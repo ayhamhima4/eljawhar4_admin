@@ -50,9 +50,12 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
     cancelled: orders.filter((o) => o.status === 'cancelled').length,
   };
 
-  const totalRevenue = orders
-    .filter((o) => o.status !== 'cancelled')
-    .reduce((sum, o) => sum + o.totalAmount, 0);
+  const receivedAmount = orders
+    .filter((o) => o.status === 'delivered')
+    .reduce((sum, o) => sum + o.totalAmount + o.shippingFee, 0);
+  const pendingAmount = orders
+    .filter((o) => o.status === 'processing' || o.status === 'shipped')
+    .reduce((sum, o) => sum + o.totalAmount + o.shippingFee, 0);
 
   return (
     <div className="flex flex-col gap-5" dir="rtl">
@@ -61,13 +64,15 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         <div>
           <h2 className="text-lg font-bold text-[#43271a]">إدارة ومتابعة طلبات الزبائن</h2>
           <p className="text-xs text-[#82746e]">
-            تدفق حي لكافة طلبات محلات الحلويات والشيفات المنزلية
+            تبقى الطلبات غير المؤكدة ظاهرة حتى تحديث حالتها، ولا يُحتسب المبلغ مقبوضاً إلا بعد تأكيد التسليم.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-[#e7e1de] shadow-xs">
-          <span className="text-xs text-[#82746e]">إجمالي دخل الطلبات:</span>
-          <span className="text-sm font-bold text-[#43271a] tabular-nums">
-            {formatCurrency(totalRevenue)}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-white px-4 py-2 rounded-2xl border border-[#e7e1de] shadow-xs">
+          <span className="text-xs text-[#82746e]">
+            المقبوض فعلياً: <strong className="text-[#1b322a]">{formatCurrency(receivedAmount)}</strong>
+          </span>
+          <span className="text-xs text-[#82746e]">
+            معلق حتى التسليم: <strong className="text-[#9e3d50]">{formatCurrency(pendingAmount)}</strong>
           </span>
         </div>
       </div>
@@ -189,6 +194,12 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                       <span className="text-xs text-[#82746e]">
                         {new Date(order.createdAt).toLocaleString('ar-DZ')}
                       </span>
+                      {(order.shippedAt || order.deliveredAt) && (
+                        <span className="block text-[11px] text-[#82746e]">
+                          {order.shippedAt && <>الشحن: {new Date(order.shippedAt).toLocaleString('ar-DZ')}</>}
+                          {order.deliveredAt && <> · استلام المبلغ: {new Date(order.deliveredAt).toLocaleString('ar-DZ')}</>}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -272,7 +283,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                         className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#1b322a] text-white text-xs font-semibold hover:bg-[#314940] transition-all"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>تأكيد التوصيل</span>
+                        <span>تأكيد التوصيل واستلام المبلغ</span>
                       </button>
                     )}
                     <button

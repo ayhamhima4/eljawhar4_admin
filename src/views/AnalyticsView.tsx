@@ -1,43 +1,98 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   DollarSign,
   ShoppingBag,
   Boxes,
   PieChart,
-  BarChart3,
   Calendar,
   ChefHat,
   TrendingUp,
   CheckCircle2,
+  Clock,
   Users,
 } from 'lucide-react';
-import { DashboardStats, RealProductDemand, Product, Order } from '../types';
+import { DashboardStats, Product, Order, RealProductDemand } from '../types';
 import { formatCurrency } from '../utils/currency';
+
+type DateFilter = 'today' | 'yesterday' | 'month' | 'custom';
+
+function localDateKey(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function localMonthKey(date: Date): string {
+  return localDateKey(date).slice(0, 7);
+}
 
 interface AnalyticsViewProps {
   stats: DashboardStats;
   products: Product[];
   orders: Order[];
-  realDemand: RealProductDemand[];
 }
 
 export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   stats,
   products,
   orders,
-  realDemand,
 }) => {
-  const confirmedOrders = orders.filter((o) => o.status !== 'cancelled');
-  const totalSales = confirmedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const averageOrderValue = confirmedOrders.length > 0 ? Math.round(totalSales / confirmedOrders.length) : 0;
-
-  // Real delivery fulfillment rate
+  const today = new Date();
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [selectedMonth, setSelectedMonth] = useState(localMonthKey(today));
+  const [fromDate, setFromDate] = useState(localDateKey(today));
+  const [toDate, setToDate] = useState(localDateKey(today));
+  const selectedOrders = orders.filter((order) => {
+    if (order.status === 'processing' || order.status === 'cancelled' || !order.shippedAt) return false;
+    const shippedDate = localDateKey(order.shippedAt);
+    if (!shippedDate) return false;
+    if (dateFilter === 'today') return shippedDate === localDateKey(new Date());
+    if (dateFilter === 'yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return shippedDate === localDateKey(yesterday);
+    }
+    if (dateFilter === 'month') return shippedDate.startsWith(selectedMonth);
+    return (!fromDate || shippedDate >= fromDate) && (!toDate || shippedDate <= toDate);
+  });
+  const receivedOrders = orders.filter((order) => {
+    if (order.status !== 'delivered' || !order.deliveredAt) return false;
+    const deliveredDate = localDateKey(order.deliveredAt);
+    if (!deliveredDate) return false;
+    if (dateFilter === 'today') return deliveredDate === localDateKey(new Date());
+    if (dateFilter === 'yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return deliveredDate === localDateKey(yesterday);
+    }
+    if (dateFilter === 'month') return deliveredDate.startsWith(selectedMonth);
+    return (!fromDate || deliveredDate >= fromDate) && (!toDate || deliveredDate <= toDate);
+  });
+  const pendingOrders = orders.filter(
+    (order) => order.status === 'processing' || order.status === 'shipped'
+  );
+  const shippedSales = selectedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const receivedAmount = receivedOrders.reduce(
+    (sum, order) => sum + order.totalAmount + order.shippingFee,
+    0
+  );
+  const pendingAmount = pendingOrders.reduce(
+    (sum, order) => sum + order.totalAmount + order.shippingFee,
+    0
+  );
+  const averageOrderValue =
+    selectedOrders.length > 0 ? Math.round(shippedSales / selectedOrders.length) : 0;
+  const deliveredFromSelection = selectedOrders.filter((order) => order.status === 'delivered').length;
   const fulfillmentRate =
-    orders.length > 0 ? Math.round((stats.deliveredOrdersCount / orders.length) * 100) : 0;
+    selectedOrders.length > 0
+      ? Math.round((deliveredFromSelection / selectedOrders.length) * 100)
+      : 0;
 
-  // Real Sales by Category computed directly from actual orders
   const categorySalesMap: Record<string, { units: number; revenue: number }> = {};
-  confirmedOrders.forEach((order) => {
+  selectedOrders.forEach((order) => {
     order.items.forEach((item) => {
       const prod = products.find((p) => p.id === item.productId);
       const category = prod ? prod.category : 'مستلزمات عامة';
@@ -51,9 +106,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const totalUnitsSold = Object.values(categorySalesMap).reduce((sum, c) => sum + c.units, 0) || 1;
 
-  // Real Customer Segments breakdown from actual orders
   const customerSegmentMap: Record<string, { ordersCount: number; totalRevenue: number }> = {};
-  confirmedOrders.forEach((order) => {
+  selectedOrders.forEach((order) => {
     const type = order.customerType || 'عميل تجزئة';
     if (!customerSegmentMap[type]) {
       customerSegmentMap[type] = { ordersCount: 0, totalRevenue: 0 };
@@ -61,6 +115,26 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     customerSegmentMap[type].ordersCount += 1;
     customerSegmentMap[type].totalRevenue += order.totalAmount;
   });
+
+  const demandMap = new Map<string, RealProductDemand>();
+  selectedOrders.forEach((order) => {
+    order.items.forEach((item) => {
+      const product = products.find((candidate) => candidate.id === item.productId);
+      const existing = demandMap.get(item.productId) ?? {
+        productId: item.productId,
+        name: product?.name ?? item.productName,
+        category: product?.category ?? 'مستلزمات عامة',
+        orderedUnits: 0,
+        totalRevenue: 0,
+        ordersCount: 0,
+      };
+      existing.orderedUnits += item.quantity;
+      existing.totalRevenue += item.quantity * item.price;
+      existing.ordersCount += 1;
+      demandMap.set(item.productId, existing);
+    });
+  });
+  const realDemand = [...demandMap.values()].sort((a, b) => b.orderedUnits - a.orderedUnits);
 
   return (
     <div className="flex flex-col gap-6" dir="rtl">
@@ -72,18 +146,63 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             إحصائيات موثقة ومحسوبة مباشرة من حركة طلبات وقاعدة بيانات المتجر
           </p>
         </div>
-        <div className="flex items-center gap-1.5 bg-white border border-[#e7e1de] px-3.5 py-1.5 rounded-2xl text-xs text-[#50443f]">
+        <div className="flex flex-wrap items-center gap-2 bg-white border border-[#e7e1de] p-2.5 rounded-2xl text-xs text-[#50443f]">
           <Calendar className="w-4 h-4 text-[#82746e]" />
-          <span>السجل التراكمي المباشر</span>
+          <label htmlFor="analytics-date-filter" className="sr-only">الفترة الزمنية</label>
+          <select
+            id="analytics-date-filter"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value as DateFilter)}
+            className="rounded-lg border border-[#e7e1de] bg-white px-2 py-1.5"
+          >
+            <option value="today">اليوم</option>
+            <option value="yesterday">اليوم السابق</option>
+            <option value="month">شهر محدد</option>
+            <option value="custom">نطاق مخصص</option>
+          </select>
+          {dateFilter === 'month' ? (
+            <input
+              aria-label="الشهر المحدد"
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+              className="rounded-lg border border-[#e7e1de] px-2 py-1.5"
+            />
+          ) : dateFilter === 'custom' ? (
+            <>
+              <label className="flex items-center gap-1">
+                من
+                <input
+                  aria-label="من تاريخ"
+                  type="date"
+                  value={fromDate}
+                  max={toDate || undefined}
+                  onChange={(event) => setFromDate(event.target.value)}
+                  className="rounded-lg border border-[#e7e1de] px-2 py-1.5"
+                />
+              </label>
+              <label className="flex items-center gap-1">
+                إلى
+                <input
+                  aria-label="إلى تاريخ"
+                  type="date"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  onChange={(event) => setToDate(event.target.value)}
+                  className="rounded-lg border border-[#e7e1de] px-2 py-1.5"
+                />
+              </label>
+            </>
+          ) : null}
         </div>
       </div>
 
       {/* Real Performance Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Metric 1: Real Revenue */}
         <div className="p-5 rounded-3xl bg-white border border-[#e7e1de] shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-[#82746e]">
-            <span className="font-semibold text-[#50443f]">صافي المبيعات المحققة</span>
+            <span className="font-semibold text-[#50443f]">مبيعات الطلبات المشحونة</span>
             <div className="w-8 h-8 rounded-xl bg-[#cde9dc]/60 text-[#1b322a] flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
@@ -91,11 +210,45 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <div className="mt-3">
             <div className="flex items-baseline gap-1">
               <span className="text-2xl sm:text-3xl font-bold text-[#43271a] tabular-nums">
-                {formatCurrency(totalSales)}
+                {formatCurrency(shippedSales)}
               </span>
             </div>
             <span className="text-[11px] text-[#82746e] mt-1 block">
-              من {confirmedOrders.length} طلبات مؤكدة
+              من {selectedOrders.length} طلبات شُحنت خلال الفترة
+            </span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-[#e7e1de] shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-[#82746e]">
+            <span className="font-semibold text-[#50443f]">الأموال المقبوضة خلال الفترة</span>
+            <div className="w-8 h-8 rounded-xl bg-[#cde9dc]/60 text-[#1b322a] flex items-center justify-center">
+              <DollarSign className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl sm:text-3xl font-bold text-[#1b322a] tabular-nums">
+              {formatCurrency(receivedAmount)}
+            </span>
+            <span className="text-[11px] text-[#82746e] mt-1 block">
+              من {receivedOrders.length} طلب تم تأكيد استلامه
+            </span>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-[#e7e1de] shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-xs text-[#82746e]">
+            <span className="font-semibold text-[#50443f]">أموال معلقة حتى التسليم</span>
+            <div className="w-8 h-8 rounded-xl bg-[#ffdbcc]/70 text-[#43271a] flex items-center justify-center">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="text-2xl sm:text-3xl font-bold text-[#9e3d50] tabular-nums">
+              {formatCurrency(pendingAmount)}
+            </span>
+            <span className="text-[11px] text-[#82746e] mt-1 block">
+              من {pendingOrders.length} طلب نشط، عبر جميع الفترات
             </span>
           </div>
         </div>
@@ -157,7 +310,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               </span>
             </div>
             <span className="text-[11px] text-[#82746e] mt-1 block">
-              {stats.deliveredOrdersCount} من أصل {orders.length} تم تسليمها بنجاح
+              {deliveredFromSelection} من أصل {selectedOrders.length} تم تسليمها بنجاح
             </span>
           </div>
         </div>

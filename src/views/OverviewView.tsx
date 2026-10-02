@@ -84,7 +84,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         {/* Card 1: Real Total Confirmed Sales */}
         <div className="p-5 rounded-3xl bg-white border border-[#e7e1de] shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-[#82746e]">
-            <span className="font-semibold text-[#50443f]">إجمالي المبيعات المؤكدة</span>
+            <span className="font-semibold text-[#50443f]">الأموال المستلمة فعلياً</span>
             <div className="w-8 h-8 rounded-xl bg-[#cde9dc]/60 text-[#1b322a] flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </div>
@@ -96,7 +96,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
               </span>
             </div>
             <span className="text-[11px] text-[#82746e] font-medium mt-1 block">
-              من {stats.totalOrdersCount - stats.cancelledOrdersCount} طلبات مؤكدة
+              من {stats.deliveredOrdersCount} طلب تم تسليمه واستلام ثمنه
             </span>
           </div>
         </div>

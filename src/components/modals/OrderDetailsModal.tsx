@@ -197,7 +197,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <button
               onClick={() => handleStatusChange('processing')}
-              disabled={isUpdating || order.status === 'processing'}
+              disabled={isUpdating || order.status !== 'processing'}
               className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all ${
                 order.status === 'processing'
                   ? 'bg-[#ffdbcc] text-[#43271a] font-bold border border-[#43271a]'
@@ -208,7 +208,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </button>
             <button
               onClick={() => handleStatusChange('shipped')}
-              disabled={isUpdating || order.status === 'shipped'}
+              disabled={isUpdating || order.status !== 'processing'}
               className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all ${
                 order.status === 'shipped'
                   ? 'bg-[#5c3d2e] text-white font-bold'
@@ -219,18 +219,18 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </button>
             <button
               onClick={() => handleStatusChange('delivered')}
-              disabled={isUpdating || order.status === 'delivered'}
+              disabled={isUpdating || order.status !== 'shipped'}
               className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all ${
                 order.status === 'delivered'
                   ? 'bg-[#1b322a] text-[#ffffff] font-bold'
                   : 'bg-white border border-[#d4c3bc] text-[#50443f] hover:bg-[#1b322a]/10'
               }`}
             >
-              تم التوصيل
+              تأكيد التوصيل واستلام المبلغ
             </button>
             <button
               onClick={() => handleStatusChange('cancelled')}
-              disabled={isUpdating || order.status === 'cancelled'}
+              disabled={isUpdating || (order.status !== 'processing' && order.status !== 'shipped')}
               className={`py-2 px-2.5 rounded-xl text-xs font-medium transition-all ${
                 order.status === 'cancelled'
                   ? 'bg-[#ba1a1a] text-white font-bold'

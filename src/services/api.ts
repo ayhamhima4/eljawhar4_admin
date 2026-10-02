@@ -41,6 +41,8 @@ interface SupabaseOrderRow {
   customer_name: string | null;
   order_number: string | null;
   subtotal: number | string;
+  shipped_at: string | null;
+  delivered_at: string | null;
 }
 
 function parseOrderNumber(value: number | string, field: string): number {
@@ -91,6 +93,7 @@ function toOrder(row: SupabaseOrderRow): Order {
   });
 
   const displayId = row.order_number?.trim() || row.id;
+  const status = toOrderStatus(row.status, displayId);
   return {
     id: displayId,
     databaseId: row.id,
@@ -105,8 +108,10 @@ function toOrder(row: SupabaseOrderRow): Order {
     shippingFee: parseOrderNumber(row.shipping_fee, 'shipping_fee'),
     discount: parseOrderNumber(row.discount, 'discount'),
     paymentMethod: row.payment_method,
-    paymentStatus: 'unknown',
-    status: toOrderStatus(row.status, displayId),
+    paymentStatus: status === 'delivered' ? 'paid' : status === 'cancelled' ? 'unknown' : 'pending',
+    status,
+    ...(row.shipped_at ? { shippedAt: row.shipped_at } : {}),
+    ...(row.delivered_at ? { deliveredAt: row.delivered_at } : {}),
     ...(row.notes ? { notes: row.notes } : {}),
     ...(row.coupon ? { coupon: row.coupon } : {}),
     createdAt: row.created_at,
@@ -316,7 +321,7 @@ export const BakeryAdminApi = {
     const { data, error } = await supabase
       .from('orders')
       .select(
-        'id, created_at, full_name, phone, wilaya, address, notes, payment_method, items, shipping_fee, discount, coupon, total, status, customer_name, order_number, subtotal'
+        'id, created_at, full_name, phone, wilaya, address, notes, payment_method, items, shipping_fee, discount, coupon, total, status, customer_name, order_number, subtotal, shipped_at, delivered_at'
       )
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -327,13 +332,28 @@ export const BakeryAdminApi = {
     const orders = await this.getOrders();
     const order = orders.find((candidate) => candidate.id === orderId);
     if (!order?.databaseId) throw new Error('الطلب غير موجود في قاعدة البيانات');
+    if (order.status === newStatus) return order;
+
+    const canTransition =
+      (order.status === 'processing' && (newStatus === 'shipped' || newStatus === 'cancelled')) ||
+      (order.status === 'shipped' && (newStatus === 'delivered' || newStatus === 'cancelled'));
+    if (!canTransition) {
+      throw new Error('لا يمكن تغيير حالة الطلب بعد إتمامه أو إلغائه، أو تجاوز خطوة الشحن');
+    }
+
+    const now = new Date().toISOString();
+    const update: { status: OrderStatus; shipped_at?: string; delivered_at?: string } = {
+      status: newStatus,
+    };
+    if (newStatus === 'shipped' && !order.shippedAt) update.shipped_at = now;
+    if (newStatus === 'delivered' && !order.deliveredAt) update.delivered_at = now;
 
     const { data, error } = await supabase
       .from('orders')
-      .update({ status: newStatus })
+      .update(update)
       .eq('id', order.databaseId)
       .select(
-        'id, created_at, full_name, phone, wilaya, address, notes, payment_method, items, shipping_fee, discount, coupon, total, status, customer_name, order_number, subtotal'
+        'id, created_at, full_name, phone, wilaya, address, notes, payment_method, items, shipping_fee, discount, coupon, total, status, customer_name, order_number, subtotal, shipped_at, delivered_at'
       )
       .single();
     if (error) throw error;
@@ -464,8 +484,8 @@ export const BakeryAdminApi = {
     const orders = await this.getOrders();
     const expiryAlerts = await this.getExpiryAlerts();
 
-    const confirmedOrders = orders.filter((o) => o.status !== 'cancelled');
-    const totalSales = confirmedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+    const receivedOrders = orders.filter((o) => o.status === 'delivered');
+    const totalSales = receivedOrders.reduce((sum, o) => sum + o.totalAmount + o.shippingFee, 0);
 
     const pendingOrdersCount = orders.filter((o) => o.status === 'processing').length;
     const shippedOrdersCount = orders.filter((o) => o.status === 'shipped').length;
