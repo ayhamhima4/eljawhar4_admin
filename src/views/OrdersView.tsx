@@ -183,7 +183,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                           الطلب #{order.id}
                         </span>
                         <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#f3ede9] text-[#50443f] font-medium">
-                          {order.customerType}
+                          {order.customerType || 'عميل متجر'}
                         </span>
                       </div>
                       <span className="text-xs text-[#82746e]">

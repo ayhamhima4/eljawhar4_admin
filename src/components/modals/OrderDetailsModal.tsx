@@ -117,7 +117,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <div className="flex items-center gap-2 text-[#50443f]">
               <span className="font-semibold text-[#1d1b19]">{order.customerName}</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#ffdbcc] text-[#43271a]">
-                {order.customerType}
+                {order.customerType || 'عميل متجر'}
               </span>
             </div>
             <div className="flex items-center gap-1.5 text-[#50443f]">
@@ -130,7 +130,14 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </div>
             <div className="flex items-center gap-1.5 text-[#50443f]">
               <CreditCard className="w-3.5 h-3.5 text-[#82746e]" />
-              <span>طريقة الدفع: {order.paymentMethod} ({order.paymentStatus === 'paid' ? 'مدفوع' : 'معلق'})</span>
+              <span>
+                طريقة الدفع: {order.paymentMethod} (
+                {order.paymentStatus === 'paid'
+                  ? 'مدفوع'
+                  : order.paymentStatus === 'pending'
+                  ? 'معلق'
+                  : 'حالة الدفع غير محددة'})
+              </span>
             </div>
           </div>
           {order.notes && (

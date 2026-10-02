@@ -40,26 +40,29 @@ export interface OrderItem {
   productName: string;
   quantity: number;
   price: number;
-  unit: ProductUnit;
+  unit?: ProductUnit;
   imageUrl?: string;
 }
 
 export interface Order {
   id: string; // e.g. BK-1082
+  databaseId?: string;
   customerName: string;
-  customerType: 'شيف منزلي' | 'مشروع حلويات' | 'محل حلويات فاخر' | 'هاوي خبز';
+  customerType?: string;
   customerPhone: string;
   customerCity: string;
   shippingAddress: string;
   items: OrderItem[];
   itemsSummary: string; // e.g. "طقم قوالب سيليكون + 2 ملونات جل كيك"
   totalAmount: number;
+  subtotal?: number;
   shippingFee: number;
   discount: number;
-  paymentMethod: 'مدى' | 'بطاقة ائتمان' | 'Apple Pay' | 'تحويل بنكي' | 'الدفع عند الاستلام';
-  paymentStatus: 'paid' | 'pending';
+  paymentMethod: string;
+  paymentStatus: 'paid' | 'pending' | 'unknown';
   status: OrderStatus;
   notes?: string;
+  coupon?: string;
   createdAt: string; // ISO string
   updatedAt: string;
 }

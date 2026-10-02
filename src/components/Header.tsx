@@ -7,6 +7,7 @@ import {
   ChefHat,
   AlertTriangle,
   RefreshCw,
+  LogOut,
 } from 'lucide-react';
 import { ExpiryAlert } from '../types';
 
@@ -17,6 +18,7 @@ interface HeaderProps {
   unreadAlertsCount: number;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onSignOut: () => Promise<void>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   unreadAlertsCount,
   onRefresh,
   isRefreshing,
+  onSignOut,
 }) => {
   const criticalCount = expiryAlerts.filter((a) => a.status === 'critical' || a.status === 'expired').length;
 
@@ -54,6 +57,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button
+            onClick={() => void onSignOut()}
+            title="تسجيل الخروج"
+            aria-label="تسجيل الخروج"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[#43271a] hover:bg-[#ffdbcc]/40 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+
           {/* Refresh button */}
           <button
             onClick={onRefresh}

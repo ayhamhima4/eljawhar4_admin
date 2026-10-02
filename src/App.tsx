@@ -13,13 +13,19 @@ import { OrdersView } from './views/OrdersView';
 import { InventoryView } from './views/InventoryView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { ApiSettingsView } from './views/ApiSettingsView';
+import { AdminLogin } from './components/AdminLogin';
 
 import { BakeryAdminApi } from './services/api';
 import { Product, Order, DashboardStats, ExpiryAlert, InventoryLog, RealProductDemand, OrderStatus } from './types';
 import { formatCurrency } from './utils/currency';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const isAdmin = session?.user.app_metadata?.role === 'admin';
 
   // Application Data States (100% Real Database Derived)
   const [products, setProducts] = useState<Product[]>([]);
@@ -62,6 +68,25 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setIsAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Admin sign-out failed:', error);
+      showToast('تعذر تسجيل الخروج', 'error');
+    }
+  }, [showToast]);
+
   // Fetch all live data from real service
   const loadData = useCallback(async () => {
     setIsRefreshing(true);
@@ -90,8 +115,34 @@ export default function App() {
   }, [showToast]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (isAdmin) void loadData();
+  }, [isAdmin, loadData]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setProducts([]);
+      setOrders([]);
+      setRealDemand([]);
+      setExpiryAlerts([]);
+      setInventoryLogs([]);
+      setSelectedOrder(null);
+      setStats({
+        totalSales: 0,
+        totalOrdersCount: 0,
+        pendingOrdersCount: 0,
+        shippedOrdersCount: 0,
+        deliveredOrdersCount: 0,
+        cancelledOrdersCount: 0,
+        totalProductsCount: 0,
+        inStockCount: 0,
+        lowStockCount: 0,
+        outOfStockCount: 0,
+        totalWarehouseUnits: 0,
+        expiringSoonCount: 0,
+        expiredCount: 0,
+      });
+    }
+  }, [isAdmin]);
 
   // Quick adjust price (+/-)
   const handleQuickAdjustPrice = async (productId: string, delta: number) => {
@@ -205,6 +256,18 @@ export default function App() {
   const pendingOrdersCount = stats.pendingOrdersCount;
   const expiringItemsCount = stats.expiringSoonCount + stats.expiredCount;
 
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#fef8f4] flex items-center justify-center" dir="rtl">
+        <p className="text-sm font-medium text-[#82746e]">جارٍ التحقق من صلاحية الدخول…</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <AdminLogin isUnauthorized={Boolean(session)} onSignOut={handleSignOut} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#fef8f4] text-[#1d1b19] flex flex-col font-['Readex_Pro',sans-serif]" dir="rtl">
       {/* Toast Notification */}
@@ -221,6 +284,7 @@ export default function App() {
         unreadAlertsCount={expiringItemsCount + pendingOrdersCount}
         onRefresh={loadData}
         isRefreshing={isRefreshing}
+        onSignOut={handleSignOut}
       />
 
       {/* Main Body Layout (Sidebar + Content Viewport) */}

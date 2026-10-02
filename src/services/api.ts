@@ -23,6 +23,100 @@ interface SupabaseProductRow {
   image: string | null;
 }
 
+interface SupabaseOrderRow {
+  id: string;
+  created_at: string;
+  full_name: string;
+  phone: string;
+  wilaya: string;
+  address: string;
+  notes: string | null;
+  payment_method: string;
+  items: unknown;
+  shipping_fee: number | string;
+  discount: number | string;
+  coupon: string | null;
+  total: number | string;
+  status: string;
+  customer_name: string | null;
+  order_number: string | null;
+  subtotal: number | string;
+}
+
+function parseOrderNumber(value: number | string, field: string): number {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    throw new Error(`قيمة الحقل ${field} غير صالحة في جدول الطلبات`);
+  }
+  return number;
+}
+
+function toOrderStatus(value: string, orderId: string): OrderStatus {
+  const status = value.trim().toLowerCase();
+  if (
+    ['processing', 'pending', 'new', 'confirmed', 'قيد التجهيز', 'قيد المعالجة', 'قيد الانتظار'].includes(
+      status
+    )
+  ) {
+    return 'processing';
+  }
+  if (['shipped', 'shipping', 'تم الشحن'].includes(status)) return 'shipped';
+  if (['delivered', 'completed', 'تم التسليم', 'مكتمل'].includes(status)) return 'delivered';
+  if (['cancelled', 'canceled', 'ملغي'].includes(status)) return 'cancelled';
+  throw new Error(`حالة الطلب "${value}" غير معروفة للطلب ${orderId}`);
+}
+
+function toOrder(row: SupabaseOrderRow): Order {
+  if (!Array.isArray(row.items)) {
+    throw new Error(`قائمة المنتجات غير صالحة في الطلب ${row.id}`);
+  }
+
+  const items = row.items.map((value, index) => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      throw new Error(`عنصر رقم ${index + 1} غير صالح في الطلب ${row.id}`);
+    }
+    const item = value as Record<string, unknown>;
+    if (
+      (typeof item.id !== 'string' && typeof item.id !== 'number') ||
+      typeof item.name !== 'string' ||
+      (typeof item.quantity !== 'number' && typeof item.quantity !== 'string') ||
+      (typeof item.price !== 'number' && typeof item.price !== 'string')
+    ) {
+      throw new Error(`بيانات عنصر رقم ${index + 1} ناقصة في الطلب ${row.id}`);
+    }
+
+    return {
+      productId: String(item.id),
+      productName: item.name,
+      quantity: parseOrderNumber(item.quantity, `items[${index}].quantity`),
+      price: parseOrderNumber(item.price, `items[${index}].price`),
+    };
+  });
+
+  const displayId = row.order_number?.trim() || row.id;
+  return {
+    id: displayId,
+    databaseId: row.id,
+    customerName: row.customer_name?.trim() || row.full_name,
+    customerPhone: row.phone,
+    customerCity: row.wilaya,
+    shippingAddress: row.address,
+    items,
+    itemsSummary: items.map((item) => `${item.quantity} × ${item.productName}`).join('، '),
+    subtotal: parseOrderNumber(row.subtotal, 'subtotal'),
+    totalAmount: parseOrderNumber(row.total, 'total'),
+    shippingFee: parseOrderNumber(row.shipping_fee, 'shipping_fee'),
+    discount: parseOrderNumber(row.discount, 'discount'),
+    paymentMethod: row.payment_method,
+    paymentStatus: 'unknown',
+    status: toOrderStatus(row.status, displayId),
+    ...(row.notes ? { notes: row.notes } : {}),
+    ...(row.coupon ? { coupon: row.coupon } : {}),
+    createdAt: row.created_at,
+    updatedAt: row.created_at,
+  };
+}
+
 function toProduct(row: SupabaseProductRow): Product {
   const timestamp = new Date().toISOString();
   return {
@@ -222,52 +316,31 @@ export const BakeryAdminApi = {
 
   // Orders - Real Only (from customers)
   async getOrders(): Promise<Order[]> {
-    const config = this.getConfig();
-    if (config.useRemoteBackend && config.backendUrl) {
-      try {
-        const response = await fetch(`${config.backendUrl}/orders`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          return Array.isArray(data) ? data : data.orders || [];
-        }
-      } catch (err) {
-        console.warn('Failed to fetch orders from remote backend:', err);
-      }
-    }
-    return loadFromStorage<Order[]>(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
+    const { data, error } = await supabase
+      .from('orders')
+      .select(
+        'id, created_at, full_name, phone, wilaya, address, notes, payment_method, items, shipping_fee, discount, coupon, total, status, customer_name, order_number, subtotal'
+      )
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data as SupabaseOrderRow[]).map(toOrder);
   },
 
   async updateOrderStatus(orderId: string, newStatus: OrderStatus): Promise<Order> {
     const orders = await this.getOrders();
-    const index = orders.findIndex((o) => o.id === orderId);
-    if (index === -1) throw new Error('الطلب غير موجود');
+    const order = orders.find((candidate) => candidate.id === orderId);
+    if (!order?.databaseId) throw new Error('الطلب غير موجود في قاعدة البيانات');
 
-    orders[index].status = newStatus;
-    orders[index].updatedAt = new Date().toISOString();
-    saveToStorage(STORAGE_KEYS.ORDERS, orders);
-
-    const config = this.getConfig();
-    if (config.useRemoteBackend && config.backendUrl) {
-      try {
-        await fetch(`${config.backendUrl}/orders/${orderId}/status`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-          },
-          body: JSON.stringify({ status: newStatus }),
-        });
-      } catch (err) {
-        console.warn('Failed to update order status on remote backend:', err);
-      }
-    }
-
-    return orders[index];
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', order.databaseId)
+      .select(
+        'id, created_at, full_name, phone, wilaya, address, notes, payment_method, items, shipping_fee, discount, coupon, total, status, customer_name, order_number, subtotal'
+      )
+      .single();
+    if (error) throw error;
+    return toOrder(data as SupabaseOrderRow);
   },
 
   async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
