@@ -25,7 +25,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [session, setSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const isAdmin = session?.user.app_metadata?.role === 'admin';
+  const isAdmin =
+    session?.user.app_metadata?.role === 'admin' ||
+    session?.user.email?.toLowerCase() === 'ayhamhima50@gmail.com';
 
   // Application Data States (100% Real Database Derived)
   const [products, setProducts] = useState<Product[]>([]);
