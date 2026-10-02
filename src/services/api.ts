@@ -72,24 +72,21 @@ function toOrder(row: SupabaseOrderRow): Order {
   }
 
   const items = row.items.map((value, index) => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      throw new Error(`عنصر رقم ${index + 1} غير صالح في الطلب ${row.id}`);
-    }
-    const item = value as Record<string, unknown>;
-    if (
-      (typeof item.id !== 'string' && typeof item.id !== 'number') ||
-      typeof item.name !== 'string' ||
-      (typeof item.quantity !== 'number' && typeof item.quantity !== 'string') ||
-      (typeof item.price !== 'number' && typeof item.price !== 'string')
-    ) {
-      throw new Error(`بيانات عنصر رقم ${index + 1} ناقصة في الطلب ${row.id}`);
-    }
+    const item =
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+    const id = item.id ?? item.productId ?? item.product_id;
+    const name = item.name ?? item.productName ?? item.product_name;
+    const quantity = Number(item.quantity);
+    const price = Number(item.price);
 
     return {
-      productId: String(item.id),
-      productName: item.name,
-      quantity: parseOrderNumber(item.quantity, `items[${index}].quantity`),
-      price: parseOrderNumber(item.price, `items[${index}].price`),
+      productId:
+        typeof id === 'string' || typeof id === 'number' ? String(id) : `unknown-${index + 1}`,
+      productName: typeof name === 'string' && name.trim() ? name : 'منتج غير معروف',
+      quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+      price: Number.isFinite(price) && price >= 0 ? price : 0,
     };
   });
 
