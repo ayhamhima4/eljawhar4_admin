@@ -275,6 +275,24 @@ export default function App() {
     }
   };
 
+  const handleDeleteOrder = async (order: Order) => {
+    if (!order.databaseId) {
+      showToast('تعذر حذف الطلب لعدم توفر معرّف قاعدة البيانات', 'error');
+      return;
+    }
+
+    try {
+      await BakeryAdminApi.deleteOrder(order.databaseId);
+      setOrders((prev) => prev.filter((candidate) => candidate.databaseId !== order.databaseId));
+      if (selectedOrder?.databaseId === order.databaseId) setSelectedOrder(null);
+      await loadData();
+      showToast(`تم حذف الطلب #${order.id} بنجاح`);
+    } catch (error) {
+      console.error(`Failed to delete order ${order.id}:`, error);
+      showToast('تعذر حذف الطلب من قاعدة البيانات', 'error');
+    }
+  };
+
   // Real Counts for navigation badges
   const pendingOrdersCount = stats.pendingOrdersCount;
   const expiringItemsCount = stats.expiringSoonCount + stats.expiredCount;
@@ -368,6 +386,7 @@ export default function App() {
               orders={orders}
               onSelectOrder={(ord) => setSelectedOrder(ord)}
               onUpdateStatus={handleUpdateOrderStatus}
+              onDeleteOrder={handleDeleteOrder}
             />
           )}
 

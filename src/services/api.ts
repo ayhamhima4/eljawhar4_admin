@@ -328,6 +328,18 @@ export const BakeryAdminApi = {
     return (data as SupabaseOrderRow[]).map(toOrder);
   },
 
+  async deleteOrder(databaseId: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', databaseId)
+      .select('id')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error('الطلب غير موجود أو لا تتوفر صلاحية حذفه');
+    return true;
+  },
+
   async updateOrderStatus(orderId: string, newStatus: OrderStatus): Promise<Order> {
     const orders = await this.getOrders();
     const order = orders.find((candidate) => candidate.id === orderId);

@@ -12,6 +12,7 @@ import {
   Eye,
   Calendar,
   CreditCard,
+  Trash2,
 } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
 import { formatCurrency } from '../utils/currency';
@@ -20,15 +21,31 @@ interface OrdersViewProps {
   orders: Order[];
   onSelectOrder: (order: Order) => void;
   onUpdateStatus: (orderId: string, newStatus: OrderStatus) => Promise<void>;
+  onDeleteOrder: (order: Order) => Promise<void>;
 }
 
 export const OrdersView: React.FC<OrdersViewProps> = ({
   orders,
   onSelectOrder,
   onUpdateStatus,
+  onDeleteOrder,
 }) => {
   const [statusFilter, setStatusFilter] = useState<'all' | OrderStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+
+  const handleDeleteOrder = async (order: Order) => {
+    if (!window.confirm(`هل أنت متأكد من حذف الطلب #${order.id} نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`)) {
+      return;
+    }
+
+    setDeletingOrderId(order.id);
+    try {
+      await onDeleteOrder(order);
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
@@ -292,6 +309,16 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>تفاصيل الفاتورة</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteOrder(order)}
+                      disabled={deletingOrderId === order.id}
+                      aria-label={`حذف الطلب ${order.id}`}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#ffdad6] text-[#ba1a1a] text-xs font-semibold hover:bg-[#f4c7c3] transition-colors disabled:cursor-wait disabled:opacity-60"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>{deletingOrderId === order.id ? 'جارٍ الحذف…' : 'حذف الطلب'}</span>
                     </button>
                   </div>
                 </div>
