@@ -5,12 +5,20 @@ import {
   ShoppingBag,
   Boxes,
   TrendingUp,
+  ClipboardList,
   Settings,
   Store,
   ExternalLink,
 } from 'lucide-react';
 
-export type ActiveTab = 'overview' | 'products' | 'orders' | 'inventory' | 'analytics' | 'api_settings';
+export type ActiveTab =
+  | 'overview'
+  | 'products'
+  | 'orders'
+  | 'inventory'
+  | 'analytics'
+  | 'reports'
+  | 'api_settings';
 
 interface NavigationProps {
   activeTab: ActiveTab;
@@ -49,6 +57,7 @@ export const DesktopSidebar: React.FC<NavigationProps> = ({
       badgeColor: 'bg-[#ba1a1a] text-white',
     },
     { id: 'analytics', label: 'تحليلات المبيعات والنقر', icon: TrendingUp },
+    { id: 'reports', label: 'التقارير المتقدمة', icon: ClipboardList },
     { id: 'api_settings', label: 'ربط النظام والـ API', icon: Settings },
   ];
 
@@ -185,6 +194,16 @@ export const MobileBottomNav: React.FC<NavigationProps> = ({
               {expiringItemsCount}
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => onTabChange('reports')}
+          className={`flex flex-col items-center justify-center gap-0.5 min-w-[54px] py-1 transition-colors ${
+            activeTab === 'reports' ? 'text-[#9e3d50] font-semibold' : 'text-[#82746e]'
+          }`}
+        >
+          <ClipboardList className="w-5 h-5" />
+          <span className="text-[11px]">التقارير</span>
         </button>
 
         {/* API Settings */}

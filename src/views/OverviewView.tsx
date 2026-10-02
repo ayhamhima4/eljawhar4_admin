@@ -16,6 +16,7 @@ import {
   TrendingUp,
   CreditCard,
   Layers,
+  ClipboardList,
 } from 'lucide-react';
 import { Product, Order, DashboardStats, RealProductDemand, OrderStatus } from '../types';
 import { formatCurrency } from '../utils/currency';
@@ -78,6 +79,23 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <span>قاعدة بيانات نشطة</span>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => onNavigateToTab('reports')}
+        className="flex items-center justify-between gap-3 rounded-2xl border border-[#e7e1de] bg-white px-4 py-3 text-right shadow-sm transition-colors hover:border-[#9e3d50] hover:bg-[#fdfbf9]"
+      >
+        <span className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f3ede9] text-[#9e3d50]">
+            <ClipboardList className="h-4 w-4" />
+          </span>
+          <span>
+            <span className="block text-sm font-bold text-[#43271a]">التقارير والإحصائيات المتقدمة</span>
+            <span className="mt-0.5 block text-[11px] text-[#82746e]">استعرض المقبوضات والطلبات والمنتجات يومًا بيوم</span>
+          </span>
+        </span>
+        <TrendingUp className="h-4 w-4 shrink-0 text-[#82746e]" />
+      </button>
 
       {/* 2. Real Verified KPI Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

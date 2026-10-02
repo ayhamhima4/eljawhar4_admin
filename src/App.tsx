@@ -12,6 +12,7 @@ import { ProductsView } from './views/ProductsView';
 import { OrdersView } from './views/OrdersView';
 import { InventoryView } from './views/InventoryView';
 import { AnalyticsView } from './views/AnalyticsView';
+import { ReportsView } from './views/ReportsView';
 import { ApiSettingsView } from './views/ApiSettingsView';
 import { AdminLogin } from './components/AdminLogin';
 
@@ -408,6 +409,14 @@ export default function App() {
               stats={stats}
               products={products}
               orders={orders}
+            />
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportsView
+              orders={orders}
+              products={products}
+              onSelectOrder={(order) => setSelectedOrder(order)}
             />
           )}
 
