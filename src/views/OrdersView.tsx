@@ -14,6 +14,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
+import { formatCurrency } from '../utils/currency';
 
 interface OrdersViewProps {
   orders: Order[];
@@ -66,7 +67,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-[#e7e1de] shadow-xs">
           <span className="text-xs text-[#82746e]">إجمالي دخل الطلبات:</span>
           <span className="text-sm font-bold text-[#43271a] tabular-nums">
-            {totalRevenue.toLocaleString('en-US')} ر.س
+            {formatCurrency(totalRevenue)}
           </span>
         </div>
       </div>
@@ -186,7 +187,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                         </span>
                       </div>
                       <span className="text-xs text-[#82746e]">
-                        {new Date(order.createdAt).toLocaleString('ar-SA')}
+                        {new Date(order.createdAt).toLocaleString('ar-DZ')}
                       </span>
                     </div>
                   </div>
@@ -247,7 +248,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-[#82746e]">المبلغ الإجمالي:</span>
                     <span className="text-lg font-bold text-[#43271a] tabular-nums">
-                      {order.totalAmount} <span className="text-xs font-normal text-[#82746e]">ر.س</span>
+                      {formatCurrency(order.totalAmount)}
                     </span>
                     <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#cde9dc] text-[#1b322a] font-medium mr-2">
                       {order.paymentMethod}

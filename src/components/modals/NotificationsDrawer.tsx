@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, AlertTriangle, Clock, Package, Boxes, ExternalLink } from 'lucide-react';
 import { ExpiryAlert, Order } from '../../types';
+import { formatCurrency } from '../../utils/currency';
 
 interface NotificationsDrawerProps {
   isOpen: boolean;
@@ -137,7 +138,7 @@ export const NotificationsDrawer: React.FC<NotificationsDrawerProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-[#43271a] text-xs">#{order.id}</span>
                       <span className="font-bold text-[#9e3d50] text-xs tabular-nums">
-                        {order.totalAmount} ر.س
+                        {formatCurrency(order.totalAmount)}
                       </span>
                     </div>
                     <span className="text-xs text-[#1d1b19] font-medium">{order.customerName}</span>

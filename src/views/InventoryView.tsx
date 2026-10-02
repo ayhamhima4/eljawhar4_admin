@@ -328,7 +328,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                       </div>
 
                       <span className="text-[10px] text-[#82746e] tabular-nums hidden sm:inline">
-                        {new Date(log.timestamp).toLocaleString('ar-SA')}
+                        {new Date(log.timestamp).toLocaleString('ar-DZ')}
                       </span>
                     </div>
                   </div>

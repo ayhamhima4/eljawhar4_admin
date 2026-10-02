@@ -207,7 +207,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           {/* Price, Stock, Min Threshold */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[#50443f]">سعر البيع (ر.س) *</label>
+              <label className="text-xs font-semibold text-[#50443f]">سعر البيع (د.ج) *</label>
               <input
                 type="number"
                 min="1"

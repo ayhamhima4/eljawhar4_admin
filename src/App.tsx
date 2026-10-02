@@ -16,6 +16,7 @@ import { ApiSettingsView } from './views/ApiSettingsView';
 
 import { BakeryAdminApi } from './services/api';
 import { Product, Order, DashboardStats, ExpiryAlert, InventoryLog, RealProductDemand, OrderStatus } from './types';
+import { formatCurrency } from './utils/currency';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
@@ -97,7 +98,7 @@ export default function App() {
     try {
       const updated = await BakeryAdminApi.quickAdjustPrice(productId, delta);
       setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)));
-      showToast(`تم تحديث سعر "${updated.name}" إلى ${updated.price} ر.س`);
+      showToast(`تم تحديث سعر "${updated.name}" إلى ${formatCurrency(updated.price)}`);
     } catch {
       showToast('تعذر تعديل السعر', 'error');
     }

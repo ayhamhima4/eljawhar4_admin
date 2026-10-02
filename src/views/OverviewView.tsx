@@ -18,6 +18,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { Product, Order, DashboardStats, RealProductDemand, OrderStatus } from '../types';
+import { formatCurrency } from '../utils/currency';
 
 interface OverviewViewProps {
   stats: DashboardStats;
@@ -91,9 +92,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <div className="mt-3">
             <div className="flex items-baseline gap-1">
               <span className="text-2xl sm:text-3xl font-extrabold text-[#43271a] tabular-nums">
-                {stats.totalSales.toLocaleString('en-US')}
+                {formatCurrency(stats.totalSales)}
               </span>
-              <span className="text-xs font-semibold text-[#82746e]">ر.س</span>
             </div>
             <span className="text-[11px] text-[#82746e] font-medium mt-1 block">
               من {stats.totalOrdersCount - stats.cancelledOrdersCount} طلبات مؤكدة
@@ -272,9 +272,8 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                         <div className="flex items-baseline gap-1">
                           <span className="text-[#82746e]">السعر:</span>
                           <span className="text-sm font-bold text-[#43271a] tabular-nums">
-                            {item.price}
+                            {formatCurrency(item.price)}
                           </span>
-                          <span className="text-[10px] text-[#82746e]">ر.س</span>
                         </div>
                         <span className="w-1 h-1 rounded-full bg-[#d4c3bc]"></span>
                         <div className="flex items-center gap-1 text-[#50443f]">
@@ -306,14 +305,14 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                       <button
                         onClick={() => onQuickAdjustPrice(item.id, 5)}
                         className="w-7 h-7 rounded-full bg-[#f3ede9] flex items-center justify-center text-[#43271a] hover:bg-[#ffdbcc] transition-colors"
-                        title="زيادة السعر 5 ر.س"
+                        title="زيادة السعر 5 د.ج"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => onQuickAdjustPrice(item.id, -5)}
                         className="w-7 h-7 rounded-full bg-[#f3ede9] flex items-center justify-center text-[#43271a] hover:bg-[#ffdbcc] transition-colors"
-                        title="تخفيض السعر 5 ر.س"
+                        title="تخفيض السعر 5 د.ج"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
                       </button>
@@ -425,7 +424,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   <div className="flex items-center justify-between text-xs text-[#50443f]">
                     <span className="font-semibold text-[#1d1b19]">{order.customerName}</span>
                     <span className="text-[#82746e]">
-                      {new Date(order.createdAt).toLocaleTimeString('ar-SA', {
+                      {new Date(order.createdAt).toLocaleTimeString('ar-DZ', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -439,7 +438,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs text-[#82746e]">إجمالي الفاتورة:</span>
                     <span className="text-base font-bold text-[#43271a] tabular-nums">
-                      {order.totalAmount} <span className="text-xs font-normal text-[#82746e]">ر.س</span>
+                      {formatCurrency(order.totalAmount)}
                     </span>
                   </div>
                 </div>
@@ -490,7 +489,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                       {item.orderedUnits} وحدة مطلوبة
                     </span>
                     <span className="text-[10px] text-[#82746e] tabular-nums">
-                      {item.totalRevenue} ر.س
+                      {formatCurrency(item.totalRevenue)}
                     </span>
                   </div>
                 </div>

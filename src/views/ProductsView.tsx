@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Product, ProductCategory, StockStatus } from '../types';
+import { formatCurrency } from '../utils/currency';
 
 interface ProductsViewProps {
   products: Product[];
@@ -268,9 +269,8 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                     <div className="flex items-baseline gap-1">
                       <span className="text-xs text-[#82746e]">السعر:</span>
                       <span className="text-base font-bold text-[#43271a] tabular-nums">
-                        {product.price}
+                        {formatCurrency(product.price)}
                       </span>
-                      <span className="text-[10px] text-[#82746e]">ر.س</span>
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -297,14 +297,14 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                     <button
                       onClick={() => onQuickAdjustPrice(product.id, 5)}
                       className="w-7 h-7 rounded-lg bg-[#f8f2ef] flex items-center justify-center text-[#43271a] hover:bg-[#ffdbcc]"
-                      title="زيادة السعر 5 ر.س"
+                      title="زيادة السعر 5 د.ج"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => onQuickAdjustPrice(product.id, -5)}
                       className="w-7 h-7 rounded-lg bg-[#f8f2ef] flex items-center justify-center text-[#43271a] hover:bg-[#ffdbcc]"
-                      title="تخفيض السعر 5 ر.س"
+                      title="تخفيض السعر 5 د.ج"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -376,7 +376,7 @@ export const ProductsView: React.FC<ProductsViewProps> = ({
                     </td>
                     <td className="py-3 px-4 text-[#50443f]">{p.category}</td>
                     <td className="py-3 px-4 font-bold text-[#43271a] tabular-nums">
-                      {p.price} ر.س
+                      {formatCurrency(p.price)}
                     </td>
                     <td className="py-3 px-4">
                       <span

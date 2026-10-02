@@ -13,6 +13,7 @@ import {
   ChefHat,
 } from 'lucide-react';
 import { Order, OrderStatus } from '../../types';
+import { formatCurrency } from '../../utils/currency';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 {getStatusBadge(order.status)}
               </div>
               <span className="text-xs text-[#82746e]">
-                {new Date(order.createdAt).toLocaleString('ar-SA')}
+                {new Date(order.createdAt).toLocaleString('ar-DZ')}
               </span>
             </div>
           </div>
@@ -152,11 +153,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <div className="flex flex-col">
                   <span className="font-semibold text-[#1d1b19]">{item.productName}</span>
                   <span className="text-[#82746e]">
-                    الكمية: {item.quantity} {item.unit} × {item.price} ر.س
+                    الكمية: {item.quantity} {item.unit} × {formatCurrency(item.price)}
                   </span>
                 </div>
                 <span className="font-bold text-[#43271a] text-sm tabular-nums">
-                  {item.quantity * item.price} ر.س
+                  {formatCurrency(item.quantity * item.price)}
                 </span>
               </div>
             ))}
@@ -167,17 +168,19 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         <div className="p-3.5 rounded-2xl bg-white border border-[#e7e1de] flex flex-col gap-1.5 text-xs">
           <div className="flex justify-between text-[#82746e]">
             <span>المجموع الفرعي:</span>
-            <span className="tabular-nums font-medium">{order.totalAmount} ر.س</span>
+            <span className="tabular-nums font-medium">{formatCurrency(order.totalAmount)}</span>
           </div>
           <div className="flex justify-between text-[#82746e]">
             <span>رسوم الشحن والتوصيل:</span>
             <span className="tabular-nums font-medium">
-              {order.shippingFee > 0 ? `${order.shippingFee} ر.س` : 'شحن مجاني'}
+              {order.shippingFee > 0 ? formatCurrency(order.shippingFee) : 'شحن مجاني'}
             </span>
           </div>
           <div className="flex justify-between text-sm font-bold text-[#43271a] pt-2 border-t border-[#e7e1de]">
             <span>إجمالي الفاتورة:</span>
-            <span className="text-base tabular-nums">{order.totalAmount + order.shippingFee} ر.س</span>
+            <span className="text-base tabular-nums">
+              {formatCurrency(order.totalAmount + order.shippingFee)}
+            </span>
           </div>
         </div>
 

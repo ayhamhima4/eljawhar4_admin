@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react';
 import { DashboardStats, RealProductDemand, Product, Order } from '../types';
+import { formatCurrency } from '../utils/currency';
 
 interface AnalyticsViewProps {
   stats: DashboardStats;
@@ -90,9 +91,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <div className="mt-3">
             <div className="flex items-baseline gap-1">
               <span className="text-2xl sm:text-3xl font-bold text-[#43271a] tabular-nums">
-                {totalSales.toLocaleString('en-US')}
+                {formatCurrency(totalSales)}
               </span>
-              <span className="text-xs font-semibold text-[#82746e]">ر.س</span>
             </div>
             <span className="text-[11px] text-[#82746e] mt-1 block">
               من {confirmedOrders.length} طلبات مؤكدة
@@ -111,9 +111,9 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <div className="mt-3">
             <div className="flex items-baseline gap-1">
               <span className="text-2xl sm:text-3xl font-bold text-[#43271a] tabular-nums">
-                {averageOrderValue}
+                {formatCurrency(averageOrderValue)}
               </span>
-              <span className="text-xs font-semibold text-[#82746e]">ر.س / طلب</span>
+              <span className="text-xs font-semibold text-[#82746e]">/ طلب</span>
             </div>
             <span className="text-[11px] text-[#82746e] mt-1 block">
               معدل إنفاق العميل في كل فاتورة
@@ -189,7 +189,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       <span className="text-[#1d1b19] font-medium">{catName}</span>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-[#43271a] tabular-nums">
-                          {data.revenue} ر.س
+                          {formatCurrency(data.revenue)}
                         </span>
                         <span className="text-[#82746e]">
                           ({data.units} وحدة · {percentage}%)
@@ -241,7 +241,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   </div>
                   <div className="text-left">
                     <span className="font-bold text-[#1b322a] text-sm tabular-nums block">
-                      {data.totalRevenue} ر.س
+                      {formatCurrency(data.totalRevenue)}
                     </span>
                     <span className="text-[10px] text-[#82746e]">إجمالي المشتريات</span>
                   </div>
@@ -292,7 +292,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </td>
                     <td className="py-3 px-4 text-[#50443f] tabular-nums">{item.ordersCount} طلب</td>
                     <td className="py-3 px-4 font-bold text-[#43271a] tabular-nums">
-                      {item.totalRevenue} ر.س
+                      {formatCurrency(item.totalRevenue)}
                     </td>
                   </tr>
                 ))}
