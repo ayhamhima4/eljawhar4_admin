@@ -69,12 +69,33 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let hasReceivedAuthEvent = false;
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      hasReceivedAuthEvent = true;
       setSession(nextSession);
       setIsAuthLoading(false);
     });
+
+    void supabase.auth
+      .getSession()
+      .then(({ data: { session: savedSession }, error }) => {
+        if (hasReceivedAuthEvent) return;
+        if (error) {
+          console.error('Failed to restore the Supabase session:', error);
+          setSession(null);
+        } else {
+          setSession(savedSession);
+        }
+        setIsAuthLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (hasReceivedAuthEvent) return;
+        console.error('Failed to restore the Supabase session:', error);
+        setSession(null);
+        setIsAuthLoading(false);
+      });
 
     return () => subscription.unsubscribe();
   }, []);
